@@ -1,18 +1,19 @@
 # PDFKit
 
-A fast, light desktop reader and markup tool for PDFs, e-books and images. Windows-first, built with Python, [PySide6](https://doc.qt.io/qtforpython-6/) and [PyMuPDF](https://pymupdf.readthedocs.io/).
+A fast, light desktop reader for PDFs, e-books and images. Windows-first, built with Python, [PySide6](https://doc.qt.io/qtforpython-6/) and [PyMuPDF](https://pymupdf.readthedocs.io/).
+
+PDFKit only reads. When you want to edit, `Ctrl+E` hands the file to [PdfCraft](https://github.com/storytold/pdfcraft), a full PDF editor. EPUBs and other formats are converted to PDF first, so editing works on any file PDFKit can open.
 
 ![PDFKit in light mode](docs/screenshot-light.png)
 
 ## Features
 
 - **Reads** PDF, EPUB, MOBI, FB2, XPS, CBZ, SVG, TXT and common image formats, in tabs.
-- **Snappy.** One canvas draws only the pages on screen. Zoom redraws in a few milliseconds, and a 689-page EPUB opens and scrolls without lag.
+- **Fast.** One canvas draws only the pages on screen. Zoom redraws in a few milliseconds, and a 689-page EPUB opens and scrolls without lag. The window is up in about half a second.
 - **Books:** adjustable text size, contents panel (`F9`), arrow keys turn pages, and it remembers your page and text size per file.
-- **Mark up PDFs:** highlight, underline, strike-through, notes, text boxes, freehand drawing, boxes, a drawn or imported signature, erase, and undo. `Ctrl+S` saves into the same file.
-- **Copy text**, search with highlighted hits, night mode, and a clean light/dark theme.
-- **Page tools:** merge, split, extract, delete, rotate, reorder and compress. These work on any supported format and save a PDF.
-- Keyboard-friendly: every action is in the menus with a shortcut (`F1` lists them) and has a tooltip.
+- **Search** with highlighted hits, **copy text** by dragging, and a night mode that tints pages to soft dark colours instead of pure black.
+- **Edit in PdfCraft** for any format (`Ctrl+E`).
+- Keyboard friendly: every action is in the menus with a shortcut (`F1` lists them) and has a tooltip.
 
 ![PDFKit in night mode](docs/screenshot-dark.png)
 
@@ -41,9 +42,8 @@ pytest
 
 ## Known limitations
 
-- Annotating needs a PDF. For an EPUB or other format, use *File > Convert to PDF* first.
-- It marks up PDFs but does not edit the existing text inside them.
-- Night mode inverts the page, so annotation colours shift (a yellow highlight looks blue).
+- It reads and copies text only. Annotating, signing and page tools were removed to keep the app small. Use PdfCraft for that.
+- Edit in PdfCraft needs PdfCraft in `%LOCALAPPDATA%\Programs\PdfCraft` (or on your PATH).
 - Only tested on Windows 11. It has not been tested with a screen reader.
 
 ## Contributing
