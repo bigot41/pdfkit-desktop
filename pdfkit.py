@@ -1,6 +1,8 @@
 import hashlib
 import json
 import os
+import shutil
+import subprocess
 import sys
 from bisect import bisect_right
 from collections import OrderedDict
@@ -43,6 +45,40 @@ CURSORS = {HAND: Qt.OpenHandCursor, SELECT: Qt.IBeamCursor}
 
 def resource(name):
     return os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))), name)
+
+
+def pdfcraft_path():
+    """PdfCraft (a separate PDF editor) if it is installed where we expect it, else None."""
+    for p in (os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "PdfCraft", "pdfcraft.exe"),
+              shutil.which("pdfcraft")):
+        if p and os.path.exists(p):
+            return p
+    return None
+
+
+def pdf_for_editing(path):
+    """A PDF copy of any supported file, saved next to the original and reused if it exists."""
+    if path.lower().endswith(".pdf"):
+        return path
+    out = os.path.splitext(path)[0] + " (PDF).pdf"
+    if not os.path.exists(out):
+        with fitz.open(path) as d:
+            if d.is_reflowable:
+                d.layout(width=560, height=800, fontsize=12)
+            fitz.open("pdf", d.convert_to_pdf()).save(out, garbage=3, deflate=True)
+    return out
+
+
+def open_in_pdfcraft(path):
+    """Convert if needed, then hand the PDF to PdfCraft. Returns an error message or None."""
+    exe = pdfcraft_path()
+    if not exe:
+        return "PdfCraft isn't installed. Put it in %LOCALAPPDATA%\\Programs\\PdfCraft (github.com/storytold/pdfcraft)."
+    try:
+        subprocess.Popen([exe, pdf_for_editing(path)])
+    except Exception as e:
+        return f"Couldn't open it in PdfCraft: {e}"
+    return None
 
 
 def parse_pages(text, count):
@@ -579,6 +615,7 @@ SHORTCUTS = [
     ("Night mode", "Ctrl+D"),
     ("Contents panel", "F9"),
     ("Go to page", "Ctrl+G"),
+    ("Edit this file in PdfCraft (any format)", "Ctrl+E"),
     ("Next / previous page (books)", "Right / Left arrow"),
     ("Scroll a screen", "Space / Shift+Space"),
     ("Tools", "V Move  T Copy text  H Highlight  U Underline  K Strike  N Note  X Text  D Draw  R Box  G Sign  E Erase"),
@@ -742,6 +779,7 @@ class Main(QMainWindow):
         save_a = self.act(m, "Save", self.save, "Ctrl+S", icon="save", tip="Save changes into this file  (Ctrl+S)")
         self.act(m, "Save as...", self.save_as_current, "Ctrl+Shift+S")
         self.act(m, "Convert to PDF (to annotate)...", self.convert)
+        self.act(m, "Edit in PdfCraft", self.edit_in_pdfcraft, "Ctrl+E")
         m.addSeparator()
         self.act(m, "Close tab", lambda: self.close_tab(self.tabs.currentIndex()), "Ctrl+W")
         self.act(m, "Quit", self.close, "Ctrl+Q")
@@ -997,6 +1035,17 @@ class Main(QMainWindow):
         elif v:
             self.say("Already a PDF")
 
+    def edit_in_pdfcraft(self):
+        v = self.cur()
+        if not v:
+            return
+        if v.dirty and v.doc.is_pdf and not self.save(v):
+            return
+        self.say("Opening in PdfCraft...")
+        err = open_in_pdfcraft(v.path)
+        if err:
+            QMessageBox.information(self, "PDFKit", err)
+
     def new_out(self, doc, title="Save as"):
         path, _ = QFileDialog.getSaveFileName(self, title, "", "PDF (*.pdf)")
         if path:
@@ -1107,6 +1156,12 @@ class Main(QMainWindow):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 2 and sys.argv[1] == "--pdfcraft":  # used by the Explorer right-click entry
+        err = open_in_pdfcraft(os.path.abspath(sys.argv[2]))
+        if err and sys.platform == "win32":
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, err, "PDFKit", 0x40)
+        sys.exit(1 if err else 0)
     if sys.platform == "win32":
         try:  # own taskbar identity so our icon shows instead of Python's
             import ctypes

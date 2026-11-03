@@ -72,3 +72,12 @@ def test_zoom_keeps_page(app, tmp_path):
     v.set_zoom(1.5)
     app.processEvents()
     assert v.current_page() == 10
+
+
+def test_pdf_for_editing_converts_books(tmp_path):
+    f = tmp_path / "book.txt"
+    f.write_text("lorem ipsum dolor sit amet\n" * 300)
+    out = pdfkit.pdf_for_editing(str(f))
+    assert out.endswith("book (PDF).pdf") and len(pymupdf.open(out)) > 1
+    make_pdf(str(tmp_path / "a.pdf"))
+    assert pdfkit.pdf_for_editing(str(tmp_path / "a.pdf")) == str(tmp_path / "a.pdf")
